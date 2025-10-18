@@ -3,28 +3,34 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
 	
 	<style>
-		body, html {
-			height: 100%;
-			margin: 0;
-		}
+	html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
 
-		.center-container {
-      height: 100vh;
-      width: 100vw;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background-color: #FCFAF7;
-      overflow: hidden;
-    }
+.center-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #FCFAF7;
+  pointer-events: none;
+}
 
     /* Make the image scale within viewport */
     #polse {
       max-width: 90vw;  /* never wider than viewport */
       max-height: 90vh; /* never taller than viewport */
+	  pointer-events: auto; /* Ensure it captures drag events */
       width: auto;
       height: auto;
       -webkit-user-drag: none;
@@ -34,19 +40,16 @@
     }
 	</style>
 </head>
-<body>
+<body draggable="false">
 
 <div class="center-container" draggable="false">
     <img id="polse" src="./rodpolse6.png" alt="/rodpolse.jpg" class="img-fluid" draggable="false">
   </div>
   
-<div id="rotationDisplay" style="position: fixed; bottom: 10px; left: 10px; font-size: 1.2rem; font-family: monospace; z-index:1000; display:none;">
+<div id="rotationDisplay" style="position: fixed; bottom: 10px; left: 10px; font-size: 1.2rem; font-family: monospace; z-index:1000; display:none;" draggable="false">
   <div id="rotationCount">0</div>
   <div id="fastestRotation">—</div>
 </div>
-
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Draggable.min.js"></script>
@@ -54,84 +57,97 @@
 <script>
 gsap.registerPlugin(Draggable);
 
-gsap.set("#polse", { rotation: gsap.utils.random(0, 360) });
-
 const image = document.querySelector("#polse");
-let velocity = 0;
-let lastRotation = 0;
-let animating = false;
 
+// --- Initial state ---
+let velocity = 0; // Spin speed
+let rotation = gsap.utils.random(0, 360); // Start angle
 let cumulativeDegrees = 0;
 let displayedRotations = 0;
-let prevRotation = null;
-
+let prevRotation = rotation;
 let lastFullRotationTime = performance.now();
 let fastestRotation = null;
 
-// normalize delta to [-180,180]
-const normalizeDelta = delta => ((delta + 180) % 360) - 180;
+// --- Rotation tracker ---
+function normalizeDelta(delta) {
+  return ((delta + 180) % 360) - 180;
+}
 
-// unified rotation handler (drag + momentum)
 function trackRotation(newRot) {
-    if (prevRotation === null) prevRotation = newRot;
-    const delta = normalizeDelta(newRot - prevRotation);
-    cumulativeDegrees += delta;
-    prevRotation = newRot;
+  const delta = normalizeDelta(newRot - prevRotation);
+  cumulativeDegrees += delta;
+  prevRotation = newRot;
 
-    const fullRotations = Math.floor(Math.abs(cumulativeDegrees) / 360);
-    if (fullRotations > 0) {
-		document.getElementById("rotationDisplay").style.display = "block";
-	
-        const now = performance.now();
-        const timePerRotation = (now - lastFullRotationTime) / 1000 / fullRotations;
-        lastFullRotationTime = now;
-        if (fastestRotation === null || timePerRotation < fastestRotation) fastestRotation = timePerRotation;
+  const fullRotations = Math.floor(Math.abs(cumulativeDegrees) / 360);
+  if (fullRotations > 0) {
+    document.getElementById("rotationDisplay").style.display = "block";
+    const now = performance.now();
+    const timePerRotation = (now - lastFullRotationTime) / 1000 / fullRotations;
+    lastFullRotationTime = now;
 
-        cumulativeDegrees -= Math.sign(cumulativeDegrees) * fullRotations * 360;
-        displayedRotations += fullRotations;
+    if (!fastestRotation || timePerRotation < fastestRotation) {
+      fastestRotation = timePerRotation;
     }
-	
-    document.getElementById("rotationCount").textContent = displayedRotations;
-    document.getElementById("fastestRotation").textContent = fastestRotation ? fastestRotation.toFixed(4) + "s" : "—";
+
+    cumulativeDegrees -= Math.sign(cumulativeDegrees) * fullRotations * 360;
+    displayedRotations += fullRotations;
+  }
+
+  document.getElementById("rotationCount").textContent = displayedRotations;
+  document.getElementById("fastestRotation").textContent = 
+    fastestRotation ? fastestRotation.toFixed(4) + "s" : "—";
 }
 
-const draggable = Draggable.create(image, {
-    type: "rotation",
-    onPress() {
-        gsap.ticker.remove(updateRotation);
-        animating = false;
-        velocity = 0;
-        prevRotation = this.rotation;
-    },
-    onDrag() {
-        trackRotation(this.rotation);
-        velocity = this.rotation - lastRotation;
-        lastRotation = this.rotation;
-    },
-    onRelease() {
-        animating = true;
-        prevRotation = this.rotation;
-        gsap.ticker.add(updateRotation);
-    }
-})[0];
-
-prevRotation = draggable.rotation || 0;
-
-draggable.update = function() {
-    trackRotation(this.rotation);
-};
-
+// --- Rotation updater ---
 function updateRotation() {
-    draggable.rotation += velocity;
-    gsap.set(image, { rotation: draggable.rotation });
-    trackRotation(draggable.rotation);
+  rotation += velocity;
+  gsap.set(image, { rotation: rotation });
+  trackRotation(rotation);
 
-    velocity *= 0.95;
-    if (Math.abs(velocity) < 0.01) {
-        gsap.ticker.remove(updateRotation);
-        animating = false;
-    }
+  velocity *= 0.992; // friction
+
+  if (Math.abs(velocity) < 0.01) {
+    velocity = 0;
+  }
 }
+
+gsap.ticker.add(updateRotation);
+
+// --- Gesture control ---
+let lastAngle = null;
+let center = { x: 0, y: 0 };
+
+// Draggable (used only for pointer tracking, NOT rotation)
+Draggable.create(image, {
+  type: "x,y", // prevent Draggable from handling rotation
+  onPress() {
+    const rect = image.getBoundingClientRect();
+    center.x = rect.left + rect.width / 2;
+    center.y = rect.top + rect.height / 2;
+
+    const dx = this.pointerX - center.x;
+    const dy = this.pointerY - center.y;
+    lastAngle = Math.atan2(dy, dx);
+  },
+  onDrag() {
+    const dx = this.pointerX - center.x;
+    const dy = this.pointerY - center.y;
+    const angle = Math.atan2(dy, dx);
+
+    let deltaAngle = angle - lastAngle;
+
+    // Normalize to [-PI, PI]
+    if (deltaAngle > Math.PI) deltaAngle -= Math.PI * (2/100);
+    if (deltaAngle < -Math.PI) deltaAngle += Math.PI * (2/100);
+
+    // Add angular velocity
+    velocity += deltaAngle * 5; // sensitivity factor
+
+    lastAngle = angle;
+  },
+  allowContextMenu: true
+});
 </script>
+
 </body>
 </html>
