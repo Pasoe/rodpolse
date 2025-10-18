@@ -32,14 +32,18 @@
       user-drag: none;
       display: block;
     }
-
 	</style>
 </head>
 <body>
 
-<div class="center-container">
+<div class="center-container" draggable="false">
     <img id="polse" src="./rodpolse6.png" alt="/rodpolse.jpg" class="img-fluid" draggable="false">
   </div>
+  
+<div id="rotationDisplay" style="position: fixed; bottom: 10px; left: 10px; font-size: 1.2rem; font-family: monospace; z-index:1000; display:none;">
+  <div id="rotationCount">0</div>
+  <div id="fastestRotation">—</div>
+</div>
 
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
@@ -48,47 +52,86 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Draggable.min.js"></script>
 
 <script>
-  gsap.registerPlugin(Draggable);
+gsap.registerPlugin(Draggable);
 
-  gsap.set("#polse", { rotation: gsap.utils.random(0, 360) });
+gsap.set("#polse", { rotation: gsap.utils.random(0, 360) });
 
-  const image = document.querySelector("#polse");
-  let velocity = 0;          // rotation speed in degrees per frame
-  let lastRotation = 0;      // previous frame rotation
-  let animating = false;
+const image = document.querySelector("#polse");
+let velocity = 0;
+let lastRotation = 0;
+let animating = false;
 
-  const draggable = Draggable.create(image, {
+let cumulativeDegrees = 0;
+let displayedRotations = 0;
+let prevRotation = null;
+
+let lastFullRotationTime = performance.now();
+let fastestRotation = null;
+
+// normalize delta to [-180,180]
+const normalizeDelta = delta => ((delta + 180) % 360) - 180;
+
+// unified rotation handler (drag + momentum)
+function trackRotation(newRot) {
+    if (prevRotation === null) prevRotation = newRot;
+    const delta = normalizeDelta(newRot - prevRotation);
+    cumulativeDegrees += delta;
+    prevRotation = newRot;
+
+    const fullRotations = Math.floor(Math.abs(cumulativeDegrees) / 360);
+    if (fullRotations > 0) {
+		document.getElementById("rotationDisplay").style.display = "block";
+	
+        const now = performance.now();
+        const timePerRotation = (now - lastFullRotationTime) / 1000 / fullRotations;
+        lastFullRotationTime = now;
+        if (fastestRotation === null || timePerRotation < fastestRotation) fastestRotation = timePerRotation;
+
+        cumulativeDegrees -= Math.sign(cumulativeDegrees) * fullRotations * 360;
+        displayedRotations += fullRotations;
+    }
+	
+    document.getElementById("rotationCount").textContent = displayedRotations;
+    document.getElementById("fastestRotation").textContent = fastestRotation ? fastestRotation.toFixed(4) + "s" : "—";
+}
+
+const draggable = Draggable.create(image, {
     type: "rotation",
     onPress() {
-      // Stop any ongoing spin when user starts dragging
-      gsap.ticker.remove(updateRotation);
-      animating = false;
-      velocity = 0;
+        gsap.ticker.remove(updateRotation);
+        animating = false;
+        velocity = 0;
+        prevRotation = this.rotation;
     },
     onDrag() {
-      // Calculate instantaneous velocity while dragging
-      velocity = this.rotation - lastRotation;
-      lastRotation = this.rotation;
+        trackRotation(this.rotation);
+        velocity = this.rotation - lastRotation;
+        lastRotation = this.rotation;
     },
     onRelease() {
-      // When released, start "momentum" spin
-      animating = true;
-      gsap.ticker.add(updateRotation);
+        animating = true;
+        prevRotation = this.rotation;
+        gsap.ticker.add(updateRotation);
     }
-  })[0];
+})[0];
 
-  function updateRotation() {
-    // Apply velocity
+prevRotation = draggable.rotation || 0;
+
+draggable.update = function() {
+    trackRotation(this.rotation);
+};
+
+function updateRotation() {
     draggable.rotation += velocity;
     gsap.set(image, { rotation: draggable.rotation });
+    trackRotation(draggable.rotation);
 
-    // Gradually slow down
-    velocity *= 0.95; // friction coefficient
+    velocity *= 0.95;
     if (Math.abs(velocity) < 0.01) {
-      gsap.ticker.remove(updateRotation);
-      animating = false;
+        gsap.ticker.remove(updateRotation);
+        animating = false;
     }
-  }
+}
 </script>
 </body>
 </html>
