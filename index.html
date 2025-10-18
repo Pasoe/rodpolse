@@ -4,6 +4,11 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+	<link rel="manifest" href="/site.webmanifest">
+	
 	<style>
 	html, body {
   margin: 0;
@@ -60,7 +65,7 @@ gsap.registerPlugin(Draggable);
 const image = document.querySelector("#polse");
 
 // --- Initial state ---
-let velocity = 0; // Spin speed
+let velocity = 0.025; // Spin speed
 let rotation = gsap.utils.random(0, 360); // Start angle
 let cumulativeDegrees = 0;
 let displayedRotations = 0;
@@ -104,9 +109,9 @@ function updateRotation() {
   gsap.set(image, { rotation: rotation });
   trackRotation(rotation);
 
-  velocity *= 0.992; // friction
+  velocity *= 0.9915; // friction
 
-  if (Math.abs(velocity) < 0.01) {
+  if (Math.abs(velocity) < 0.001) {
     velocity = 0;
   }
 }
