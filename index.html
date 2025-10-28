@@ -2,7 +2,7 @@
 <html>
 <head>
 	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
 	
 	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -57,10 +57,50 @@
   <div id="fastestRotation">—</div>
 </div>
 
+<div id="noPolse" style="position: fixed; bottom: 10px; left: 10px; font-size: 1.2rem; font-family: monospace; z-index:1000; display:none;" draggable="false">
+  <div id="noPolseText">Small Rød Pølses dont spin. Unhack and Rød Pølse will spin.</div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Draggable.min.js"></script>
 
 <script>
+	const img = document.getElementById('polse');
+	let unpolse = false;
+	
+	function updatePolse(unPolse) {
+		unpolse = unPolse;
+		
+		if(unpolse){
+			document.getElementById("noPolse").style.display = "block";
+			document.getElementById("rotationDisplay").style.display = "none";
+		} else {
+			document.getElementById("noPolse").style.display = "none";
+			document.getElementById("rotationDisplay").style.display = "block";
+		}
+	}
+
+	function checkZoom() {
+      const zoom = Math.round(window.devicePixelRatio * 100);
+      // You can also use: const zoom = Math.round((window.outerWidth / window.innerWidth) * 100);
+      
+      if (zoom !== 100) {
+        // Hide or remove image when zoom is detected
+        //img.classList.add('hidden');
+        console.log(`Zoom detected: ${zoom}%`);
+		updatePolse(true);
+      } else {
+        // Restore image if zoom returns to 100%
+        img.classList.remove('hidden');
+		updatePolse(false);
+      }
+    }
+
+    // Detect zoom when resizing or zooming
+    window.addEventListener('resize', checkZoom);
+    window.addEventListener('load', checkZoom);
+
+
 gsap.registerPlugin(Draggable);
 
 const image = document.querySelector("#polse");
@@ -106,6 +146,7 @@ function trackRotation(newRot) {
 
 // --- Rotation updater ---
 function updateRotation() {
+  if(unpolse){ return; }
   rotation += velocity;
   gsap.set(image, { rotation: rotation });
   trackRotation(rotation);
@@ -146,9 +187,11 @@ Draggable.create(image, {
     if (deltaAngle > Math.PI) deltaAngle -= Math.PI * (2/100);
     if (deltaAngle < -Math.PI) deltaAngle += Math.PI * (2/100);
 
-    // Add angular velocity
-    velocity += deltaAngle * 5; // sensitivity factor
-
+	if(!unpolse) {
+      // Add angular velocity
+      velocity += deltaAngle * 5; // sensitivity factor
+	}
+	
     lastAngle = angle;
   },
   allowContextMenu: true
