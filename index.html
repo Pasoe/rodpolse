@@ -51,31 +51,91 @@
 <div class="center-container" draggable="false">
     <img id="polse" src="./rodpolse6.png" alt="/rodpolse.jpg" class="img-fluid" draggable="false">
   </div>
-  
-<div id="rotationDisplay" style="position: fixed; bottom: 10px; left: 10px; font-size: 1.2rem; font-family: monospace; z-index:1000; display:none;" draggable="false">
-  <div id="rotationCount">0</div>
-  <div id="fastestRotation">—</div>
-</div>
+ 
+	<div id="rotationDisplay" style="position: fixed; bottom: 10px; left: 44px; z-index:1000; display:none;">
+		<div style="font-size: 0.8rem; font-family: monospace;" draggable="false">
+		  <div id="rotationCount">0</div>
+		  <div id="fastestRotation">—</div>
+		</div>
+		
+		<img id="resetPolse" src="favicon-32x32.png" 
+		src='favicon-32x32.png' onmouseover="this.src='brokenPolse.png';" onmouseout="this.src='favicon-32x32.png';"
+		style="position: fixed; bottom: 16px; left: 10px; z-index:1000; height:24px; width:24px;" 
+		draggable="false">
+		</img>
+	</div>
 
-<div id="noPolse" style="position: fixed; bottom: 10px; left: 10px; font-size: 1.2rem; font-family: monospace; z-index:1000; display:none;" draggable="false">
+<div id="noPolseBig" style="position: fixed; bottom: 10px; left: 10px; font-size: 1.2rem; font-family: monospace; z-index:1000; display:none;" draggable="false">
+  <div id="noPolseText">Big Rød Pølses dont spin. Unhack and Rød Pølse will spin.</div>
+</div>
+<div id="noPolseSmall" style="position: fixed; bottom: 10px; left: 10px; font-size: 1.2rem; font-family: monospace; z-index:1000; display:none;" draggable="false">
   <div id="noPolseText">Small Rød Pølses dont spin. Unhack and Rød Pølse will spin.</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Draggable.min.js"></script>
 
+
+
+
 <script>
+    // Load the saved count (if any)
+    let savedRotationCount = parseInt(localStorage.getItem('rotationCount')) || 0;
+	let savedRotationTime = parseFloat(localStorage.getItem('rotationTime')) || 0;
+	let displayedRotations = 0;
+	let fastestRotation = null;
+	
+	// setSavedData
+	if (savedRotationCount > 0 && savedRotationTime > 0) {
+		displayedRotations = savedRotationCount;
+		fastestRotation = savedRotationTime;
+	}
+	
+	function updatePolseData(rotationCountToSave, fastestRotationToSave) {
+		// Persist rotation count every time it changes
+		if (rotationCountToSave !== savedRotationCount) {
+			localStorage.setItem('rotationCount', rotationCountToSave);
+			savedRotationCount = rotationCountToSave;
+		}
+
+		// Persist fastest rotation if first time or improved
+		if (!savedRotationTime || fastestRotationToSave < savedRotationTime) {
+			localStorage.setItem('rotationTime', fastestRotationToSave);
+			savedRotationTime = fastestRotationToSave;
+		}
+	}
+	
+	function clearPolseData() {
+
+		localStorage.removeItem('rotationTime');
+		localStorage.removeItem('rotationCount');
+
+		displayedRotations = 0;
+		fastestRotation = null;
+
+		document.getElementById("rotationCount").textContent = displayedRotations;
+		document.getElementById("fastestRotation").textContent = "—";
+	}
+	
+
 	const img = document.getElementById('polse');
 	let unpolse = false;
 	
-	function updatePolse(unPolse) {
+	function updatePolse(unPolse, isBig) {
 		unpolse = unPolse;
 		
 		if(unpolse){
-			document.getElementById("noPolse").style.display = "block";
+			if(isBig) {
+				document.getElementById("noPolseBig").style.display = "block";
+			}
+			else {
+				document.getElementById("noPolseSmall").style.display = "block";
+			}
+			
 			document.getElementById("rotationDisplay").style.display = "none";
 		} else {
-			document.getElementById("noPolse").style.display = "none";
+			document.getElementById("noPolseBig").style.display = "none";
+			document.getElementById("noPolseSmall").style.display = "none";
 			document.getElementById("rotationDisplay").style.display = "block";
 		}
 	}
@@ -86,12 +146,9 @@
       
       if (zoom !== 100) {
         // Hide or remove image when zoom is detected
-        //img.classList.add('hidden');
-        console.log(`Zoom detected: ${zoom}%`);
-		updatePolse(true);
+		updatePolse(true, zoom > 100);
       } else {
         // Restore image if zoom returns to 100%
-        img.classList.remove('hidden');
 		updatePolse(false);
       }
     }
@@ -99,6 +156,13 @@
     // Detect zoom when resizing or zooming
     window.addEventListener('resize', checkZoom);
     window.addEventListener('load', checkZoom);
+	
+	const resetButton = document.getElementById('resetPolse');
+
+	  // Add a click event listener
+	  resetButton.addEventListener('click', function() {
+		clearPolseData();
+	  });
 
 
 gsap.registerPlugin(Draggable);
@@ -109,10 +173,10 @@ const image = document.querySelector("#polse");
 let velocity = 0.025; // Spin speed
 let rotation = gsap.utils.random(0, 360); // Start angle
 let cumulativeDegrees = 0;
-let displayedRotations = 0;
+
 let prevRotation = rotation;
 let lastFullRotationTime = performance.now();
-let fastestRotation = null;
+
 
 // --- Rotation tracker ---
 function normalizeDelta(delta) {
@@ -124,24 +188,37 @@ function trackRotation(newRot) {
   cumulativeDegrees += delta;
   prevRotation = newRot;
 
-  const fullRotations = Math.floor(Math.abs(cumulativeDegrees) / 360);
-  if (fullRotations > 0) {
-    document.getElementById("rotationDisplay").style.display = "block";
+  let didFullRotation = false;
+
+  // Handle one or more full spins since last frame
+  while (Math.abs(cumulativeDegrees) >= 360) {
+    cumulativeDegrees -= Math.sign(cumulativeDegrees) * 360;
+    didFullRotation = true;
+
     const now = performance.now();
-    const timePerRotation = (now - lastFullRotationTime) / 1000 / fullRotations;
+    const timePerRotation = (now - lastFullRotationTime) / 1000; // seconds
     lastFullRotationTime = now;
 
+    // update fastestRotation immediately
     if (!fastestRotation || timePerRotation < fastestRotation) {
       fastestRotation = timePerRotation;
     }
 
-    cumulativeDegrees -= Math.sign(cumulativeDegrees) * fullRotations * 360;
-    displayedRotations += fullRotations;
+    displayedRotations++;
   }
 
+  // Show rotation display only when needed
+  if (didFullRotation || (displayedRotations && fastestRotation)) {
+    document.getElementById("rotationDisplay").style.display = "block";
+  }
+
+  // Sync UI
   document.getElementById("rotationCount").textContent = displayedRotations;
-  document.getElementById("fastestRotation").textContent = 
+  document.getElementById("fastestRotation").textContent =
     fastestRotation ? fastestRotation.toFixed(4) + "s" : "—";
+
+  // Save results
+  updatePolseData(displayedRotations, fastestRotation);
 }
 
 // --- Rotation updater ---
