@@ -59,7 +59,7 @@
 		</div>
 		
 		<img id="resetPolse" src="favicon-32x32.png" 
-		src='favicon-32x32.png'
+		src='favicon-32x32.png' 
 		style="position: fixed; bottom: 16px; left: 10px; z-index:1000; height:24px; width:24px;" 
 		draggable="false">
 		</img>
@@ -198,7 +198,7 @@
 
     // Detect zoom when resizing or zooming
     window.addEventListener('resize', checkZoom);
-    window.addEventListener('load', checkZoom);
+    window.addEventListener('load', () => setTimeout(checkZoom, 300));
 	
 	const resetButton = document.getElementById('resetPolse');
 
