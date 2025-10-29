@@ -183,11 +183,17 @@
 		}
 	}
 
+	function isMobile() {
+	  const ua = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+	  const touch = window.matchMedia("(pointer: coarse)").matches;
+	  return ua || touch;
+	}
+
 	function checkZoom() {
       const zoom = Math.round(window.devicePixelRatio * 100);
       // You can also use: const zoom = Math.round((window.outerWidth / window.innerWidth) * 100);
-      
-      if (zoom !== 100) {
+	  
+      if (!isMobile() && zoom !== 100) {
         // Hide or remove image when zoom is detected
 		updatePolse(true, zoom > 100);
       } else {
@@ -198,7 +204,7 @@
 
     // Detect zoom when resizing or zooming
     window.addEventListener('resize', checkZoom);
-    window.addEventListener('load', () => setTimeout(checkZoom, 300));
+    window.addEventListener('load', checkZoom);
 	
 	const resetButton = document.getElementById('resetPolse');
 
