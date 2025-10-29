@@ -66,10 +66,10 @@
 	</div>
 
 <div id="noPolseBig" style="position: fixed; bottom: 10px; left: 10px; font-size: 1.2rem; font-family: monospace; z-index:1000; display:none;" draggable="false">
-  <div id="noPolseText">Big Rød Pølses dont spin. Unhack and Rød Pølse will spin.</div>
+  <div id="noPolseBigText">Big Rød Pølses dont spin. Unhack and Rød Pølse will spin.</div>
 </div>
 <div id="noPolseSmall" style="position: fixed; bottom: 10px; left: 10px; font-size: 1.2rem; font-family: monospace; z-index:1000; display:none;" draggable="false">
-  <div id="noPolseText">Small Rød Pølses dont spin. Unhack and Rød Pølse will spin.</div>
+  <div id="noPolseSmallText">Small Rød Pølses dont spin. Unhack and Rød Pølse will spin.</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
@@ -79,6 +79,49 @@
 
 
 <script>
+	const path = window.location.pathname;
+	
+	// Get references to your elements
+	const polseImg = document.getElementById("polse");
+	const resetPolseImg = document.getElementById("resetPolse");
+	const noPolseBigText = document.getElementById("noPolseBigText");
+	const noPolseSmallText = document.getElementById("noPolseSmallText");
+
+	// Define configuration for each path
+	const pathConfig = {
+	  "/": {
+		polseSrc: "./rodpolse6.png",
+		resetSrc: "favicon-32x32.png",
+		resetHoverSrc: "brokenPolse.png",
+		bigText: "Big Rød Pølses don’t spin. Unhack and Rød Pølse will spin.",
+		smallText: "Small Rød Pølses don’t spin. Unhack and Rød Pølse will spin."
+	  },
+	  "/mads": {
+		polseSrc: "./polsemads.png",
+		resetSrc: "polsemads-mini.png",
+		resetHoverSrc: "polsekorn-mini.png",
+		bigText: "Big Mads don’t spin. Unhack and Mads will spin.",
+		smallText: "Small Mads don’t spin. Unhack and Mads will spin."
+	  }
+	};
+	
+	// Pick config based on current path, fallback to root config
+	const config = pathConfig[path] || pathConfig["/"];
+
+	// Apply images and text
+	polseImg.src = config.polseSrc;
+	resetPolseImg.src = config.resetSrc;
+	noPolseBigText.textContent = config.bigText;
+	noPolseSmallText.textContent = config.smallText;
+
+	// Handle hover effect dynamically
+	resetPolseImg.addEventListener("mouseover", () => {
+	  resetPolseImg.src = config.resetHoverSrc;
+	});
+	resetPolseImg.addEventListener("mouseout", () => {
+	  resetPolseImg.src = config.resetSrc;
+	});
+
     // Load the saved count (if any)
     let savedRotationCount = parseInt(localStorage.getItem('rotationCount')) || 0;
 	let savedRotationTime = parseFloat(localStorage.getItem('rotationTime')) || 0;
