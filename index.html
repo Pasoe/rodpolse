@@ -87,19 +87,17 @@
 	const noPolseBigText = document.getElementById("noPolseBigText");
 	const noPolseSmallText = document.getElementById("noPolseSmallText");
 
+	const polseSrc = "./rodpolse6.png";
+	const resetSrc = "favicon-32x32.png";
+	const resetHoverSrc = "brokenPolse.png";
+
 	// Define configuration for each path
 	const pathConfig = {
 	  "/": {
-		polseSrc: "./rodpolse6.png",
-		resetSrc: "favicon-32x32.png",
-		resetHoverSrc: "brokenPolse.png",
 		bigText: "Big Rød Pølses don’t spin. Unhack and Rød Pølse will spin.",
 		smallText: "Small Rød Pølses don’t spin. Unhack and Rød Pølse will spin."
 	  },
-	  "/mads/": {
-		polseSrc: "./polsemads.png",
-		resetSrc: "polsemads-mini.png",
-		resetHoverSrc: "polsekorn-mini.png",
+	  "/msh/": {
 		bigText: "Big Mads don’t spin. Unhack and Mads will spin.",
 		smallText: "Small Mads don’t spin. Unhack and Mads will spin."
 	  }
@@ -109,17 +107,17 @@
 	const config = pathConfig[path] || pathConfig["/"];
 
 	// Apply images and text
-	polseImg.src = config.polseSrc;
-	resetPolseImg.src = config.resetSrc;
+	polseImg.src = polseSrc;
+	resetPolseImg.src = resetSrc;
 	noPolseBigText.textContent = config.bigText;
 	noPolseSmallText.textContent = config.smallText;
 
 	// Handle hover effect dynamically
 	resetPolseImg.addEventListener("mouseover", () => {
-	  resetPolseImg.src = config.resetHoverSrc;
+	  resetPolseImg.src = resetHoverSrc;
 	});
 	resetPolseImg.addEventListener("mouseout", () => {
-	  resetPolseImg.src = config.resetSrc;
+	  resetPolseImg.src = resetSrc;
 	});
 
     // Load the saved count (if any)
